@@ -2,69 +2,11 @@
 
 // Path of the JSON file that contains tasks
 const string path = "data/data.json";
-var tasks = await LoadTasks();
-
-await MainMenu();
+List<TodoTask> tasks;
+var currentSortingMode = SortingMode.Date;
+await ShowTasks();
 
 return;
-
-// This method shows the main menu of the application
-async Task MainMenu()
-{
-    var options = new List<string> { "Show Task List", "Add New Task", "Edit Task (update, mark as completed, remove)", "Save and Quit" };
-    int index = 0;
-
-    while (true)
-    {
-        Console.Clear();
-        Console.WriteLine("Welcome to ToDoLy!");
-        Console.WriteLine();
-        Console.WriteLine("Pick an option:");
-
-        for (int i = 0; i < options.Count; i++)
-        {
-            if (i == index)
-            {
-                Console.BackgroundColor = ConsoleColor.Gray;
-                Console.ForegroundColor = ConsoleColor.Black;
-                Console.WriteLine(options[i]);
-                Console.ResetColor();
-            }
-            else
-            {
-                Console.WriteLine(options[i]);
-            }
-        }
-
-        switch (Console.ReadKey(true).Key)
-        {
-            case ConsoleKey.UpArrow:
-                index = (index > 0) ? --index : options.Count - 1;
-                break;
-            case ConsoleKey.DownArrow:
-                index = (index < options.Count - 1) ? ++index : 0;
-                break;
-            case ConsoleKey.Enter:
-                switch (index)
-                {
-                    case 0:
-                        await ShowTasks(SortingMode.Unordered);
-                        break;
-                    case 1:
-                        await AddTask();
-                        break;
-                    case 2:
-                        EditTask();
-                        break;
-                    case 3:
-                        await SaveTasks();
-                        Quit();
-                        break;
-                }
-                break;
-        }
-    }
-}
 
 // Save the serialized tasks to a data.json file
 async Task SaveTasks()
@@ -73,7 +15,7 @@ async Task SaveTasks()
     await File.WriteAllTextAsync(path, tasksJson);
 }
 
-// This method loads tasks from a json file 
+// Load all tasks from a json file
 async Task<List<TodoTask>> LoadTasks()
 {
     if (!File.Exists(path))
@@ -86,46 +28,48 @@ async Task<List<TodoTask>> LoadTasks()
 }
 
 // This method displays tasks with specified sorting mode
-async Task ShowTasks(SortingMode mode)
-{
-    Console.Clear();
-    tasks = await LoadTasks();
-    if (tasks is {Count: 0})
-    {
-        Console.WriteLine("No tasks have been added");
-        return;
-    }
-
-    IEnumerable<TodoTask> tasksToView = mode switch
-    {
-        SortingMode.Unordered => tasks,
-        SortingMode.Project => tasks.OrderBy(task => task.Project),
-        SortingMode.Date => tasks.OrderBy(task => task.DueDate),
-        SortingMode.Status => tasks.OrderByDescending(task => task.Status),
-        _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
-    };
-
-    Console.ForegroundColor = ConsoleColor.DarkCyan;
-    Console.WriteLine("{0,-20} {1,-20} {2, -20} {3, -20}", "NAME", "PROJECT", "DUE DATE", "STATUS");
-    foreach (var task in tasksToView)
-    {
-        Console.ForegroundColor = task.Status ? ConsoleColor.DarkCyan : ConsoleColor.Magenta;
-        var status = task.Status ? "Completed" : "Pending";
-        Console.WriteLine("{0,-20} {1,-20} {2, -20} {3, -20}", task.Name, task.Project, task.DueDate.ToString(),
-            status);
-    }
-
-    var options = new List<string> { "Sort by date", "Sort by project", "Sort by status", "Back to menu" };
-    int index = 0;
+async Task ShowTasks()
+{  
+    var options = new List<string> { "Sort by date", "Sort by project", "Sort by status", "Add new task", "Edit task" };
+    var index = 0;
 
     while (true)
     {
+        Console.Clear(); 
+
+        tasks = await LoadTasks();
+        if (tasks is {Count: 0})
+        {
+            Console.WriteLine("No tasks have been added");
+            return;
+        }
+        
+        //Make a sorted list based on the selected mode
+        IEnumerable<TodoTask> sortedTasks = currentSortingMode switch
+        {
+            SortingMode.Unordered => tasks,
+            SortingMode.Project => tasks.OrderBy(task => task.Project),
+            SortingMode.Date => tasks.OrderBy(task => task.DueDate),
+            SortingMode.Status => tasks.OrderByDescending(task => task.Status),
+            _ => throw new ArgumentOutOfRangeException(nameof(currentSortingMode), currentSortingMode, null)
+        };
+        
+        //Print task parameters in nice columns
         Console.ForegroundColor = ConsoleColor.DarkCyan;
-        for (int i = 0; i < options.Count; i++)
+        Console.WriteLine("{0,-20} {1,-20} {2, -20} {3, -20}", "NAME", "PROJECT", "DUE DATE", "STATUS");
+        foreach (var task in sortedTasks)
+        {
+            Console.ForegroundColor = task.Status ? ConsoleColor.DarkCyan : ConsoleColor.Magenta;
+            var status = task.Status ? "Completed" : "Pending";
+            Console.WriteLine("{0,-20} {1,-20} {2, -20} {3, -20}", task.Name, task.Project, task.DueDate.ToString(), status);
+        }
+
+        Console.ForegroundColor = ConsoleColor.White;
+        for (var i = 0; i < options.Count; i++)
         {
             if (i == index)
             {
-                Console.BackgroundColor = ConsoleColor.Gray;
+                Console.BackgroundColor = ConsoleColor.White;
                 Console.ForegroundColor = ConsoleColor.Black;
                 Console.WriteLine(options[i]);
                 Console.ResetColor();
@@ -148,17 +92,17 @@ async Task ShowTasks(SortingMode mode)
                 switch (index)
                 {
                     case 0:
-                        await ShowTasks(SortingMode.Date);
+                        currentSortingMode = SortingMode.Date;
                         break;
                     case 1:
-                        await ShowTasks(SortingMode.Project);
+                        currentSortingMode = SortingMode.Project;
                         break;
                     case 2:
-                        await ShowTasks(SortingMode.Status);
+                        currentSortingMode = SortingMode.Status;
                         break;
                     case 3:
-                        await MainMenu();
-                        break;
+                        await AddTask();
+                        return;
                 }
                 break;
         }
@@ -207,9 +151,7 @@ async Task AddTask()
     var task = new TodoTask(name, project, DateOnly.FromDateTime(DateTime.Now), dueDate, status);
     tasks.Add(task);
     await SaveTasks();
-
-    Console.WriteLine("Task added successfully!");
-    await MainMenu();
+    await ShowTasks();
 }
 
 void EditTask()
