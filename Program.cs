@@ -30,7 +30,7 @@ async Task<List<TodoTask>> LoadTasks()
 // This method displays tasks with specified sorting mode
 async Task ShowTasks()
 {  
-    var options = new List<string> { "Sort by date", "Sort by project", "Sort by status", "Add new task", "Edit task" };
+    var options = new List<string> { "Sort by date", "Sort by project", "Sort by status", "Add new task", "Edit task", "Save and quit" };
     var index = 0;
 
     while (true)
@@ -103,6 +103,11 @@ async Task ShowTasks()
                     case 3:
                         await AddTask();
                         return;
+                    case 4:
+                        EditTask();
+                        return;
+                    case 5:
+                        return;
                 }
                 break;
         }
@@ -156,25 +161,58 @@ async Task AddTask()
 
 void EditTask()
 {
+    var taskIndex = 0;
     
+    while (true)
+    {
+        Console.Clear();
+        for (var i = 0; i < tasks.Count; i++)
+        {
+            if (i == taskIndex)
+            {
+                Console.BackgroundColor = ConsoleColor.White;
+                Console.ForegroundColor = ConsoleColor.Black;
+                Console.WriteLine(tasks[i].Name);
+                Console.ResetColor();
+            }
+            else
+            {
+                Console.WriteLine(tasks[i].Name);
+            }
+        }
+
+        switch (Console.ReadKey(true).Key)
+        {
+            case ConsoleKey.UpArrow:
+                taskIndex = (taskIndex > 0) ? --taskIndex : tasks.Count - 1;
+                break;
+            case ConsoleKey.DownArrow:
+                taskIndex = (taskIndex < tasks.Count - 1) ? ++taskIndex : 0;
+                break;
+            case ConsoleKey.Enter:
+                // Here you can place the logic for editing the selected task.
+                break;
+            case ConsoleKey.Escape:
+                // Break the loop and return to main menu
+                return;
+        }
+    }
 }
 
-// This method terminates the application
 void Quit()
 {
     Environment.Exit(0);
 }
 
+//Class for todo tasks
 public class TodoTask
 {
-    // properties of the task
     public string? Name { get; set; }
     public string? Project { get; set; }
     public DateOnly DueDate { get; set; }
     public DateOnly CreationDate { get; set; }
     public bool Status { get; set; }
-
-    // constructor of the task
+    
     public TodoTask(string? name, string? project, DateOnly creationDate, DateOnly dueDate, bool status)
     {
         Name = name;
