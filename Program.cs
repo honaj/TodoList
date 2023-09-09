@@ -27,6 +27,32 @@ async Task<List<TodoTask>> LoadTasks()
     return JsonConvert.DeserializeObject<List<TodoTask>>(jsonResult) ?? throw new InvalidOperationException();
 }
 
+//Make a sorted list based on the selected mode
+IEnumerable<TodoTask> GetSortedTasks()
+{
+    return currentSortingMode switch
+    {
+        SortingMode.Unordered => tasks,
+        SortingMode.Project => tasks.OrderBy(task => task.Project),
+        SortingMode.Date => tasks.OrderBy(task => task.DueDate),
+        SortingMode.Status => tasks.OrderBy(task => task.Status),
+        _ => throw new ArgumentOutOfRangeException(nameof(currentSortingMode), currentSortingMode, null)
+    };
+}
+
+void PrintTasks()
+{
+    //Print task parameters in nice columns
+    Console.ForegroundColor = ConsoleColor.DarkCyan;
+    Console.WriteLine("{0,-20} {1,-20} {2, -20} {3, -20}", "NAME", "PROJECT", "DUE DATE", "STATUS");
+    foreach (var task in GetSortedTasks())
+    {
+        Console.ForegroundColor = task.Status ? ConsoleColor.DarkCyan : ConsoleColor.Magenta;
+        var status = task.Status ? "Completed" : "Pending";
+        Console.WriteLine("{0,-20} {1,-20} {2, -20} {3, -20}", task.Name, task.Project, task.DueDate.ToString(), status);
+    }
+}
+
 // This method displays tasks with specified sorting mode
 async Task ShowTasks()
 {  
@@ -44,25 +70,7 @@ async Task ShowTasks()
             return;
         }
         
-        //Make a sorted list based on the selected mode
-        IEnumerable<TodoTask> sortedTasks = currentSortingMode switch
-        {
-            SortingMode.Unordered => tasks,
-            SortingMode.Project => tasks.OrderBy(task => task.Project),
-            SortingMode.Date => tasks.OrderBy(task => task.DueDate),
-            SortingMode.Status => tasks.OrderByDescending(task => task.Status),
-            _ => throw new ArgumentOutOfRangeException(nameof(currentSortingMode), currentSortingMode, null)
-        };
-        
-        //Print task parameters in nice columns
-        Console.ForegroundColor = ConsoleColor.DarkCyan;
-        Console.WriteLine("{0,-20} {1,-20} {2, -20} {3, -20}", "NAME", "PROJECT", "DUE DATE", "STATUS");
-        foreach (var task in sortedTasks)
-        {
-            Console.ForegroundColor = task.Status ? ConsoleColor.DarkCyan : ConsoleColor.Magenta;
-            var status = task.Status ? "Completed" : "Pending";
-            Console.WriteLine("{0,-20} {1,-20} {2, -20} {3, -20}", task.Name, task.Project, task.DueDate.ToString(), status);
-        }
+        PrintTasks();
 
         Console.ForegroundColor = ConsoleColor.White;
         for (var i = 0; i < options.Count; i++)
@@ -162,6 +170,7 @@ async Task AddTask()
 void EditTask()
 {
     var taskIndex = 0;
+    TodoTask selectedTask;
     
     while (true)
     {
@@ -197,11 +206,6 @@ void EditTask()
                 return;
         }
     }
-}
-
-void Quit()
-{
-    Environment.Exit(0);
 }
 
 //Class for todo tasks
