@@ -3,7 +3,7 @@
 const string jsonPath = "data/data.json";
 var tasks = await LoadTasks();
 var currentSortingMode = SortingMode.Date;
-await MainMenu();
+MainMenu();
 
 return;
 
@@ -40,7 +40,7 @@ IEnumerable<TodoTask> GetSortedTasks()
 }
 
 // Show all tasks and a basic menu
-async Task MainMenu()
+void MainMenu()
 {  
     var options = new List<string> { "Sort by date", "Sort by project", "Sort by status", "Add new task", "Edit task", "Save and quit" };
     var index = 0;
@@ -96,7 +96,7 @@ async Task MainMenu()
                         currentSortingMode = SortingMode.Status;
                         break;
                     case 3:
-                        await AddTask();
+                        AddTask();
                         break;
                     case 4:
                         SelectTask();
@@ -155,7 +155,7 @@ async Task AddTask()
     var task = new TodoTask(name, project, DateOnly.FromDateTime(DateTime.Now), dueDate, status);
     tasks.Add(task);
     await SaveTasks();
-    await MainMenu();
+    MainMenu();
 }
 
 // Use arrow keys to navigate between tasks
