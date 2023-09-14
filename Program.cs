@@ -55,9 +55,9 @@ async Task MainMenu()
             return;
         }
         
-        //PrintTasks();
         PrintTasksWithOptionalSelection();
 
+        //Print all menu options
         Console.ForegroundColor = ConsoleColor.White;
         for (var i = 0; i < options.Count; i++)
         {
@@ -74,6 +74,7 @@ async Task MainMenu()
             }
         }
 
+        // Arrow key navigation for menu
         switch (Console.ReadKey(true).Key)
         {
             case ConsoleKey.UpArrow:
@@ -157,6 +158,7 @@ async Task AddTask()
     await MainMenu();
 }
 
+// Use arrow keys to navigate between tasks
 void SelectTask()
 {
     var taskIndex = 0;
