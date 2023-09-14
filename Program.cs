@@ -1,7 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-// Path of the JSON file that contains tasks
-const string path = "data/data.json";
+const string jsonPath = "data/data.json";
 var tasks = await LoadTasks();
 var currentSortingMode = SortingMode.Date;
 await MainMenu();
@@ -12,18 +11,18 @@ return;
 async Task SaveTasks()
 {
     var tasksJson = JsonConvert.SerializeObject(tasks, Formatting.Indented);
-    await File.WriteAllTextAsync(path, tasksJson);
+    await File.WriteAllTextAsync(jsonPath, tasksJson);
 }
 
 // Load all tasks from a json file
 async Task<List<TodoTask>> LoadTasks()
 {
-    if (!File.Exists(path))
+    if (!File.Exists(jsonPath))
     {
         Console.WriteLine("data.json cannot be loaded");
         return new List<TodoTask>();
     }
-    var jsonResult = await File.ReadAllTextAsync(path);
+    var jsonResult = await File.ReadAllTextAsync(jsonPath);
     return JsonConvert.DeserializeObject<List<TodoTask>>(jsonResult) ?? throw new InvalidOperationException();
 }
 
@@ -50,7 +49,7 @@ async Task MainMenu()
     {
         Console.Clear(); 
         
-        if (tasks is {Count: 0})
+        if (tasks.Count == 0)
         {
             Console.WriteLine("No tasks have been added");
             return;
@@ -99,7 +98,7 @@ async Task MainMenu()
                         await AddTask();
                         break;
                     case 4:
-                        EditTask();
+                        SelectTask();
                         break;
                     case 5:
                         return;
@@ -109,9 +108,10 @@ async Task MainMenu()
     }
 }
 
-// This method adds a new task to the list
+// Create a new task
 async Task AddTask()
 {
+    // Get the name
     string? name;
     while (true)
     {
@@ -122,6 +122,7 @@ async Task AddTask()
         Console.WriteLine("Invalid input. Please enter a valid task name.");
     }
 
+    // Get the project name
     string? project;
     while (true)
     {
@@ -132,6 +133,7 @@ async Task AddTask()
         Console.WriteLine("Invalid input. Please enter a valid project name.");
     }
 
+    // Get due date
     DateOnly dueDate;
     while (true)
     {
@@ -144,6 +146,7 @@ async Task AddTask()
         Console.WriteLine("Invalid input. Please enter a valid due date.");
     }
     
+    //Get if the task is finished or not
     Console.WriteLine("Is the task completed? (yes/no)");
     var statusInput = Console.ReadLine()?.ToLower();
     var status = statusInput == "yes";
@@ -154,14 +157,14 @@ async Task AddTask()
     await MainMenu();
 }
 
-async Task EditTask()
+void SelectTask()
 {
     var taskIndex = 0;
     
     while (true)
     {
         Console.Clear();
-        PrintTasksWithOptionalSelection(taskIndex); // Print tasks with the selected task highlighted
+        PrintTasksWithOptionalSelection(taskIndex);
         
         switch (Console.ReadKey(true).Key)
         {
@@ -173,7 +176,6 @@ async Task EditTask()
                 break;
             case ConsoleKey.Enter:
                 EditSelectedTask(taskIndex);
-                await SaveTasks();
                 return;
             case ConsoleKey.B:
                 return;
@@ -181,9 +183,9 @@ async Task EditTask()
     }
 }
 
+// Print task parameters in nice columns with the selected task highlighted
 void PrintTasksWithOptionalSelection(int? selectedTaskIndex = null)
 {
-    // Print task parameters in nice columns with the selected task highlighted
     Console.ForegroundColor = ConsoleColor.DarkCyan;
     Console.WriteLine("{0,-20} {1,-20} {2, -20} {3, -20}", "NAME", "PROJECT", "DUE DATE", "STATUS");
 
@@ -204,19 +206,18 @@ void PrintTasksWithOptionalSelection(int? selectedTaskIndex = null)
         var status = task.Status ? "Completed" : "Pending";
         Console.WriteLine("{0,-20} {1,-20} {2, -20} {3, -20}", task.Name, task.Project, task.DueDate.ToString(), status);
     }
-
-    // Print back to main menu option
+    
     Console.ResetColor();
     if (selectedTaskIndex == tasks.Count)
     {
         Console.BackgroundColor = ConsoleColor.White;
         Console.ForegroundColor = ConsoleColor.Black;
     }
-
-    //Console.WriteLine("Back to main menu");
+    
     Console.ResetColor();   
 }
 
+// Overwrite parameters of a given task
 void EditSelectedTask(int taskIndex)
 {
     var selectedTask = tasks[taskIndex];
@@ -255,16 +256,19 @@ void EditSelectedTask(int taskIndex)
                 switch (index)
                 {
                     case 0:
+                        // Replace task name
                         Console.Write("Enter new name: ");
                         selectedTask.Name = Console.ReadLine();
                         break;
                     case 1:
-                        Console.Write("Enter new project: ");
+                        // Replace project name
+                        Console.Write("Enter new project name: ");
                         selectedTask.Project = Console.ReadLine();
                         break;
                     case 2:
+                        // Replace due date
                         Console.Write("Enter new due date (yyyy-MM-dd): ");
-                        if (DateOnly.TryParse(Console.ReadLine(), out DateOnly newDueDate))
+                        if (DateOnly.TryParse(Console.ReadLine(), out var newDueDate))
                         {
                             selectedTask.DueDate = newDueDate;
                         }
@@ -274,10 +278,12 @@ void EditSelectedTask(int taskIndex)
                         }
                         break;
                     case 3:
+                        // Flip flop the status
                         selectedTask.Status = !selectedTask.Status;
                         break;
                     case 4:
-                        // Save changes and return to the main menu
+                        // Overwrite old task and return to the main menu
+                        tasks[taskIndex] = selectedTask;
                         SaveTasks().Wait();
                         return;
                     case 5:
@@ -287,56 +293,6 @@ void EditSelectedTask(int taskIndex)
                 break;
         }
     }
-}
-
-// This method modifies an existing task
-async Task ModifyTask(TodoTask task)
-{
-    // Print current values
-    Console.WriteLine($"Current task name: {task.Name}");
-    Console.WriteLine($"Current project name: {task.Project}");
-    Console.WriteLine($"Current due date: {task.DueDate}");
-    Console.WriteLine($"Current status: {(task.Status ? "Completed" : "Pending")}");
-
-    // Ask for new values
-    Console.WriteLine("Enter new task name (or press Enter to keep current value): ");
-    var name = Console.ReadLine();
-    if (!string.IsNullOrEmpty(name))
-    {
-        task.Name = name;
-    }
-
-    Console.WriteLine("Enter new project name (or press Enter to keep current value): ");
-    var project = Console.ReadLine();
-    if (!string.IsNullOrEmpty(project))
-    {
-        task.Project = project;
-    }
-
-    DateOnly dueDate;
-    while (true)
-    {
-        Console.WriteLine("Enter new due date (yyyy-MM-dd) (or press Enter to keep current value): ");
-        var input = Console.ReadLine();
-        if ((string.IsNullOrEmpty(input)) || DateOnly.TryParse(input, out dueDate))
-            break;
-        Console.WriteLine("Invalid input. Please enter a valid due date.");
-    }
-    if (!string.IsNullOrEmpty(Console.ReadLine()))
-    {
-        task.DueDate = dueDate;
-    }
-
-    Console.WriteLine("Is the task finished? (yes/no)");
-    var statusInput = Console.ReadLine()?.ToLower();
-    if (statusInput == "yes")
-    {
-        task.Status = !task.Status;
-    }
-
-    // Save tasks
-    await SaveTasks();
-    await MainMenu();
 }
 
 // sorting mode enumerator
